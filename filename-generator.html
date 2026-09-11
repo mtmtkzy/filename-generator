@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ファイル名ジェネレーター</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 40px 20px;
+    background: #E7E9E4;
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+    color: #22282E;
+    min-height: 100vh;
+  }
+  .wrap {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0 0 4px;
+    color: #1D3557;
+  }
+  .sub {
+    font-size: 13px;
+    color: #5B6570;
+    margin: 0 0 28px;
+  }
+  .card {
+    background: #ffffff;
+    border-radius: 14px;
+    border: 1px solid #DADDD5;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .field { margin-bottom: 18px; }
+  .field:last-child { margin-bottom: 0; }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: #3A4149;
+    margin-bottom: 6px;
+  }
+  .hint {
+    font-size: 12px;
+    color: #8A9099;
+    font-weight: 400;
+    margin-left: 6px;
+  }
+  select, input[type="text"], input[type="date"] {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #C7CBC2;
+    font-size: 14px;
+    font-family: inherit;
+    background: #FCFCFA;
+    color: #22282E;
+  }
+  select:focus, input:focus {
+    outline: none;
+    border-color: #1D3557;
+    box-shadow: 0 0 0 3px rgba(29,53,87,0.12);
+  }
+  .other-input { margin-top: 8px; display: none; }
+  .other-input.show { display: block; }
+  .row {
+    display: flex;
+    gap: 10px;
+  }
+  .row .field { flex: 1; }
+  .settings-toggle {
+    font-size: 12px;
+    color: #1D3557;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+    font-family: inherit;
+  }
+  .settings-box {
+    display: none;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #EDEFE9;
+  }
+  .settings-box.show { display: block; }
+  .radio-group { display: flex; flex-direction: column; gap: 8px; }
+  .radio-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .radio-option input { width: auto; }
+  .badge-rec {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    background: #FFD84D;
+    color: #5C4400;
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
+  }
+
+  /* label tape preview */
+  .tape-outer {
+    background: #EDEFE9;
+    border-radius: 14px;
+    padding: 28px 24px;
+    text-align: center;
+  }
+  .tape-label {
+    display: inline-flex;
+    align-items: center;
+    background: #FFFFFF;
+    border: 2px solid #1D3557;
+    border-radius: 4px;
+    padding: 14px 20px;
+    position: relative;
+    max-width: 100%;
+  }
+  .tape-label::before, .tape-label::after {
+    content: "";
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: #E7E9E4;
+    border: 2px solid #1D3557;
+    border-radius: 50%;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .tape-label::before { left: -5px; }
+  .tape-label::after { right: -5px; }
+  .tape-text {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 15px;
+    font-weight: 700;
+    color: #1D3557;
+    word-break: break-all;
+    line-height: 1.5;
+  }
+  .tape-empty {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 14px;
+    color: #B4B8AE;
+  }
+  .actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .btn-copy {
+    background: #1D3557;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .btn-copy:active { transform: scale(0.97); }
+  .btn-copy.copied { background: #2C7A4B; }
+  .format-note {
+    text-align: center;
+    font-size: 12px;
+    color: #8A9099;
+    margin-top: 12px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ファイル名ジェネレーター</h1>
+  <p class="sub">Google Drive運用向けの命名規則でファイル名を作成します</p>
+
+  <div class="card">
+    <div class="row">
+      <div class="field">
+        <label>日付</label>
+        <input type="date" id="dateInput">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>分掌部</label>
+      <select id="deptSelect">
+        <option value="教務部">教務部</option>
+        <option value="生徒指導部">生徒指導部</option>
+        <option value="保健部">保健部</option>
+        <option value="進路指導部">進路指導部</option>
+        <option value="研修部">研修部</option>
+        <option value="総務部">総務部</option>
+        <option value="支援部">支援部</option>
+        <option value="事務部">事務部</option>
+        <option value="__other__">その他(自由入力)</option>
+      </select>
+      <input type="text" id="deptOther" class="other-input" placeholder="分掌部名を入力">
+    </div>
+
+    <div class="field">
+      <label>内容</label>
+      <input type="text" id="contentInput" placeholder="例: 職員会議資料、研修案内">
+    </div>
+
+    <div class="field">
+      <label>拡張子 <span class="hint">(任意)</span></label>
+      <input type="text" id="extInput" placeholder="例: pdf、docx(空欄でも可)">
+    </div>
+  </div>
+
+  <div class="card">
+    <button class="settings-toggle" id="settingsToggle">並び順・区切り文字の設定を変更する</button>
+    <div class="settings-box" id="settingsBox">
+      <label style="margin-bottom:10px;">並び順</label>
+      <div class="radio-group">
+        <label class="radio-option">
+          <input type="radio" name="order" value="date-dept-content" checked>
+          日付 → 分掌部 → 内容 <span class="badge-rec">おすすめ</span>
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="order" value="dept-date-content">
+          分掌部 → 日付 → 内容
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="order" value="dept-content-date">
+          分掌部 → 内容 → 日付
+        </label>
+      </div>
+      <label style="margin-top:16px; margin-bottom:10px;">区切り文字</label>
+      <div class="radio-group">
+        <label class="radio-option">
+          <input type="radio" name="sep" value="_" checked>
+          アンダースコア「_」<span class="badge-rec">おすすめ</span>
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="sep" value="-">
+          ハイフン「-」
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="tape-outer">
+    <div class="tape-label">
+      <span class="tape-text" id="tapeText"><span class="tape-empty">ここにファイル名が表示されます</span></span>
+    </div>
+    <div class="actions">
+      <button class="btn-copy" id="copyBtn">コピーする</button>
+    </div>
+    <p class="format-note">日付を先頭・8桁数字にすると、Drive内で名前順=時系列順に並びます</p>
+  </div>
+</div>
+
+<script>
+  const dateInput = document.getElementById('dateInput');
+  const deptSelect = document.getElementById('deptSelect');
+  const deptOther = document.getElementById('deptOther');
+  const contentInput = document.getElementById('contentInput');
+  const extInput = document.getElementById('extInput');
+  const tapeText = document.getElementById('tapeText');
+  const copyBtn = document.getElementById('copyBtn');
+  const settingsToggle = document.getElementById('settingsToggle');
+  const settingsBox = document.getElementById('settingsBox');
+
+  const today = new Date();
+  dateInput.value = today.toISOString().slice(0,10);
+
+  settingsToggle.addEventListener('click', () => {
+    settingsBox.classList.toggle('show');
+  });
+
+  deptSelect.addEventListener('change', () => {
+    deptOther.classList.toggle('show', deptSelect.value === '__other__');
+  });
+
+  function sanitize(s) {
+    return s.replace(/[\\\/:*?"<>|]/g, '').trim();
+  }
+
+  function getOrder() {
+    return document.querySelector('input[name="order"]:checked').value;
+  }
+  function getSep() {
+    return document.querySelector('input[name="sep"]:checked').value;
+  }
+
+  function buildFilename() {
+    const rawDate = dateInput.value;
+    const dateStr = rawDate ? rawDate.replace(/-/g, '') : '';
+    const dept = deptSelect.value === '__other__' ? deptOther.value : deptSelect.value;
+    const content = contentInput.value;
+    const ext = extInput.value.replace(/^\./, '').trim();
+
+    const parts = { date: sanitize(dateStr), dept: sanitize(dept), content: sanitize(content) };
+    if (!parts.date && !parts.dept && !parts.content) return '';
+
+    const order = getOrder();
+    const sep = getSep();
+    const orderMap = {
+      'date-dept-content': ['date','dept','content'],
+      'dept-date-content': ['dept','date','content'],
+      'dept-content-date': ['dept','content','date']
+    };
+    const seq = orderMap[order].map(k => parts[k]).filter(v => v);
+    let name = seq.join(sep);
+    if (ext) name += '.' + ext;
+    return name;
+  }
+
+  function render() {
+    const name = buildFilename();
+    if (name) {
+      tapeText.innerHTML = '';
+      tapeText.textContent = name;
+    } else {
+      tapeText.innerHTML = '<span class="tape-empty">ここにファイル名が表示されます</span>';
+    }
+  }
+
+  [dateInput, deptSelect, deptOther, contentInput, extInput].forEach(el => {
+    el.addEventListener('input', render);
+    el.addEventListener('change', render);
+  });
+  document.querySelectorAll('input[name="order"], input[name="sep"]').forEach(el => {
+    el.addEventListener('change', render);
+  });
+
+  copyBtn.addEventListener('click', () => {
+    const name = buildFilename();
+    if (!name) return;
+    const doneFallback = () => {
+      copyBtn.textContent = 'コピーしました';
+      copyBtn.classList.add('copied');
+      setTimeout(() => {
+        copyBtn.textContent = 'コピーする';
+        copyBtn.classList.remove('copied');
+      }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(name).then(doneFallback).catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = name;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        doneFallback();
+      });
+    }
+  });
+
+  render();
+</script>
+</body>
+</html>
